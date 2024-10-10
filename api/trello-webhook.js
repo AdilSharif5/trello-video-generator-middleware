@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     const action = req.body.action;
 
     // Check if the card was moved to "Done"
-    if (action.type === "updateCard" && action.data.list.name === "Done") {
+    if (action.type === "updateCard" && action.data.listAfter.name === "Done") {
       const cardName = action.data.card.name;
       console.log(`Card moved to Done: ${cardName}`);
 
