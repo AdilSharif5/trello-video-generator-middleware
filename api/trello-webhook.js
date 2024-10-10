@@ -1,35 +1,39 @@
-import axios from "axios";
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).send("Method Not Allowed");
+  if (req.method === "GET") {
+    // Handle Trello's initial GET request for validation
+    return res.status(200).send("Webhook verified");
   }
 
-  // Log the request body for debugging
-  console.log("Received Trello Webhook:", req.body);
+  if (req.method === "POST") {
+    // Log the request body for debugging
+    console.log("Received Trello Webhook:", req.body);
 
-  const action = req.body.action;
+    const action = req.body.action;
 
-  // Check if the card was moved to "Done"
-  if (action.type === "updateCard" && action.data.list.name === "Done") {
-    const cardName = action.data.card.name;
-    console.log(`Card moved to Done: ${cardName}`);
+    // Check if the card was moved to "Done"
+    if (action.type === "updateCard" && action.data.list.name === "Done") {
+      const cardName = action.data.card.name;
+      console.log(`Card moved to Done: ${cardName}`);
 
-    // Check if the card name matches your criteria
-    if (isRelevantCard(cardName)) {
-      try {
-        // Trigger the GitHub Action
-        await triggerGitHubAction(req.body);
-        res.status(200).send("Webhook received and GitHub Action triggered!");
-      } catch (error) {
-        res.status(500).send("Error triggering GitHub Action");
+      // Check if the card name matches your criteria
+      if (isRelevantCard(cardName)) {
+        try {
+          // Trigger the GitHub Action
+          await triggerGitHubAction(req.body);
+          res.status(200).send("Webhook received and GitHub Action triggered!");
+        } catch (error) {
+          res.status(500).send("Error triggering GitHub Action");
+        }
+      } else {
+        res.status(200).send("Card not relevant, no action taken");
       }
     } else {
-      res.status(200).send("Card not relevant, no action taken");
+      res.status(200).send("Card not moved to Done");
     }
-  } else {
-    res.status(200).send("Card not moved to Done");
   }
+  // If neither GET nor POST method is used, return 405
+  res.setHeader("Allow", ["POST", "GET"]);
+  return res.status(405).send(`Method ${req.method} Not Allowed`);
 }
 
 function isRelevantCard(cardName) {
@@ -44,23 +48,6 @@ const triggerGitHubAction = async (body) => {
   const WORKFLOW_ID = "video-generation.yml"; // Your GitHub Actions workflow file
 
   try {
-    // await axios.post(
-    //   `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
-    //   {
-    //     event_type: "trigger_build",
-    //     client_payload: {
-    //       action: "card moved", // your custom input
-    //       card: body.card, // any other relevant data
-    //     },
-    //   },
-    //   {
-    //     headers: {
-    //       Authorization: `token ${GITHUB_TOKEN}`,
-    //       Accept: "application/vnd.github.v3+json",
-    //     },
-    //   }
-    // );
-
     const response = await fetch(
       `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
       {
