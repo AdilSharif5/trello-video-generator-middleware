@@ -1,7 +1,10 @@
 export default async function handler(req, res) {
-  if (req.method === "GET") {
-    // Handle Trello's initial GET request for validation
-    return res.status(200).send("Webhook verified");
+  // Handle GET and HEAD requests (Trello's webhook validation)
+  if (req.method === "GET" || req.method === "HEAD") {
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).send("Webhook verified"); // Respond with 200 status for Trello validation
+    console.log(`${req.method} verification successful`);
+    return;
   }
 
   if (req.method === "POST") {
@@ -31,8 +34,8 @@ export default async function handler(req, res) {
       res.status(200).send("Card not moved to Done");
     }
   }
-  // If neither GET nor POST method is used, return 405
-  res.setHeader("Allow", ["POST", "GET"]);
+  // If the method is not GET, HEAD, or POST, return 405 Method Not Allowed
+  res.setHeader("Allow", ["POST", "GET", "HEAD"]);
   return res.status(405).send(`Method ${req.method} Not Allowed`);
 }
 
