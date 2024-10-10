@@ -44,22 +44,45 @@ const triggerGitHubAction = async (body) => {
   const WORKFLOW_ID = "video-generation.yml"; // Your GitHub Actions workflow file
 
   try {
-    await axios.post(
+    // await axios.post(
+    //   `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
+    //   {
+    //     event_type: "trigger_build",
+    //     client_payload: {
+    //       action: "card moved", // your custom input
+    //       card: body.card, // any other relevant data
+    //     },
+    //   },
+    //   {
+    //     headers: {
+    //       Authorization: `token ${GITHUB_TOKEN}`,
+    //       Accept: "application/vnd.github.v3+json",
+    //     },
+    //   }
+    // );
+
+    const response = await fetch(
       `https://api.github.com/repos/${GITHUB_REPO}/dispatches`,
       {
-        event_type: "trigger_build",
-        client_payload: {
-          action: "card moved", // your custom input
-          card: body.card, // any other relevant data
-        },
-      },
-      {
+        method: "POST",
         headers: {
           Authorization: `token ${GITHUB_TOKEN}`,
           Accept: "application/vnd.github.v3+json",
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          event_type: "trigger_build", // This must match the GitHub Action workflow trigger
+          client_payload: {
+            action: "card moved", // Optional: You can pass any additional data about the Trello event here
+            card: body.card,
+          },
+        }),
       }
     );
+
+    if (!response.ok) {
+      throw new Error(`GitHub Action failed: ${response.statusText}`);
+    }
     console.log("GitHub Action completed successfully");
   } catch (error) {
     console.error("Error triggering GitHub Action:", error);
