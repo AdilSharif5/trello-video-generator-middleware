@@ -1,4 +1,6 @@
 export default async function handler(req, res) {
+  console.log("Incoming request:", req.method, req.body);
+
   // Handle GET and HEAD requests (Trello's webhook validation)
   if (req.method === "GET" || req.method === "HEAD") {
     res.setHeader("Content-Type", "application/json");
@@ -8,40 +10,54 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    // Log the request body for debugging
-    console.log("Received Trello Webhook:", req.body);
+    console.log("Received webhook payload:", JSON.stringify(req.body, null, 2)); // Log the full payload
 
     const action = req.body.action;
 
-    // Check if the card was moved to "Done"
-    if (action.type === "updateCard" && action.data.listAfter.name === "Done") {
-      const cardName = action.data.card.name;
-      console.log(`Card moved to Done: ${cardName}`);
+    // Check if it's an updateCard action
+    if (action && action.type === "updateCard") {
+      console.log("Card updated:", JSON.stringify(action, null, 2));
 
-      // Check if the card name matches your criteria
-      if (isRelevantCard(cardName)) {
-        try {
-          // Trigger the GitHub Action
-          await triggerGitHubAction(req.body);
-          res.status(200).send("Webhook received and GitHub Action triggered!");
-        } catch (error) {
-          res.status(500).send("Error triggering GitHub Action");
+      // Check for listAfter, which represents the destination list after the card was moved
+      if (action.data && action.data.listAfter) {
+        const cardName = action.data.card.name;
+        const listAfter = action.data.listAfter.name;
+
+        console.log(`Card '${cardName}' moved to list '${listAfter}'`);
+
+        // Perform your checks and actions here
+        if (listAfter === "Done" && isRelevantCard(cardName)) {
+          try {
+            // Trigger GitHub Action, ensure it finishes before responding
+            await triggerGitHubAction(cardName);
+          } catch (error) {
+            console.error("Failed to trigger GitHub Action:", error);
+            return res.status(500).send("Failed to trigger GitHub Action");
+          }
+        } else {
+          console.log("Card is not relevant");
         }
       } else {
-        res.status(200).send("Card not relevant, no action taken");
+        console.log("No listAfter found in the payload");
+        return res.status(400).send("Invalid payload: listAfter not found");
       }
-    } else {
-      res.status(200).send("Card not moved to Done");
     }
+
+    // Ensure you send only one response
+    return res.status(200).send("Webhook received");
+  } else {
+    // If the method is not POST, send a 405 error
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-  // If the method is not GET, HEAD, or POST, return 405 Method Not Allowed
-  res.setHeader("Allow", ["POST", "GET", "HEAD"]);
-  return res.status(405).send(`Method ${req.method} Not Allowed`);
 }
 
 function isRelevantCard(cardName) {
+  /**
+   * Maybe instead of card name I should use idShort (key in the response from trello)
+   */
   // Define your criteria for the cards that should trigger the action
-  const relevantCards = ["Card A", "Card B"]; // Add your relevant card names here
+  const relevantCards = ["Test with name", "Card B"]; // Add your relevant card names here
   return relevantCards.includes(cardName);
 }
 
