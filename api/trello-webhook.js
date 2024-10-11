@@ -20,22 +20,22 @@ export default async function handler(req, res) {
 
       // Check for listAfter, which represents the destination list after the card was moved
       if (action.data && action.data.listAfter) {
-        const cardName = action.data.card.name;
+        const cardIdShort = Number(action.data.card.idShort);
         const listAfter = action.data.listAfter.name;
 
-        console.log(`Card '${cardName}' moved to list '${listAfter}'`);
+        console.log(`Card '${cardIdShort}' moved to list '${listAfter}'`);
 
         // Perform your checks and actions here
-        if (listAfter === "Done" && isRelevantCard(cardName)) {
+        if (listAfter === "Done" && isRelevantCard(cardIdShort)) {
           try {
             // Trigger GitHub Action, ensure it finishes before responding
-            await triggerGitHubAction(cardName);
+            await triggerGitHubAction(action.data.card);
           } catch (error) {
             console.error("Failed to trigger GitHub Action:", error);
             return res.status(500).send("Failed to trigger GitHub Action");
           }
         } else {
-          console.log("Card is not relevant");
+          console.log("Card is not relevant: ", cardIdShort);
         }
       } else {
         console.log("No listAfter found in the payload");
@@ -52,19 +52,16 @@ export default async function handler(req, res) {
   }
 }
 
-function isRelevantCard(cardName) {
-  /**
-   * Maybe instead of card name I should use idShort (key in the response from trello)
-   */
+function isRelevantCard(cardIdShort) {
   // Define your criteria for the cards that should trigger the action
-  const relevantCards = ["Test with name", "Card B"]; // Add your relevant card names here
-  return relevantCards.includes(cardName);
+  // const relevantCards = ["Test with name", "Card B"];
+  const relevantCards = [15, 19, 20];
+  return relevantCards.includes(cardIdShort);
 }
 
-const triggerGitHubAction = async (body) => {
+const triggerGitHubAction = async (card) => {
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // Use environment variable for security
   const GITHUB_REPO = "AdilSharif5/trello-video-generator"; // Change this to your GitHub repository
-  const WORKFLOW_ID = "video-generation.yml"; // Your GitHub Actions workflow file
 
   try {
     const response = await fetch(
@@ -80,7 +77,7 @@ const triggerGitHubAction = async (body) => {
           event_type: "trigger_build", // This must match the GitHub Action workflow trigger
           client_payload: {
             action: "card moved", // Optional: You can pass any additional data about the Trello event here
-            card: body.card,
+            card: card.name,
           },
         }),
       }
