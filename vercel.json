@@ -4,12 +4,20 @@
     {
       "src": "api/trello-webhook.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/trello-list-data.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/trello-webhook",
       "dest": "api/trello-webhook.js"
+    },
+    {
+      "src": "/api/trello-list-data",
+      "dest": "api/trello-list-data.js"
     }
   ]
 }
