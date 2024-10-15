@@ -5,16 +5,10 @@ export default async function (req, res) {
 
   console.log("trello-list-data function req: ", req);
 
-  /**
-   *
-   * Commenting CORS code as this will be called from GitHub Actions basically
-   * a server. So, server-to-server does not have such issue as CORS!
-   *
-   * */
   // Add CORS headers
-  // res.setHeader("Access-Control-Allow-Origin", "http://localhost:3001");
-  // res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  // res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
     // Respond to preflight request
